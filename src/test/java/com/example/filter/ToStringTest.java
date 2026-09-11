@@ -34,6 +34,26 @@ class ToStringTest {
     }
 
     @Test
+    void singleChildAndStillSelfParenthesizes() {
+        assertEquals("(role == 'administrator')", Filter.and(Filter.equalTo("role", "administrator")).toString());
+    }
+
+    @Test
+    void andNestedInAndKeepsBothGroupings() {
+        Filter filter = Filter.and(
+                Filter.and(
+                        Filter.equalTo("role", "administrator"),
+                        Filter.greaterThan("age", "30")
+                ),
+                Filter.equalTo("department", "engineering")
+        );
+
+        assertEquals(
+                "((role == 'administrator' AND age > 30) AND department == 'engineering')",
+                filter.toString());
+    }
+
+    @Test
     void notWrapsItsChildDirectly() {
         assertEquals("NOT (role == 'administrator')", Filter.not(Filter.equalTo("role", "administrator")).toString());
     }

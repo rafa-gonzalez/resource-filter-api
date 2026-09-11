@@ -15,8 +15,10 @@ final class OrFilter implements Filter {
         this.children = List.copyOf(children);
     }
     
-    @Override 
+    @Override
     public boolean matches(Map<String, String> resource) {
+        Objects.requireNonNull(resource, "resource must not be null");
+
         for (Filter child : children) {
             if (child.matches(resource)) {
                 return true; 

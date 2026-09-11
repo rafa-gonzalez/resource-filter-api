@@ -23,6 +23,13 @@ class OrFilterTest {
     }
 
     @Test
+    void singleChildBehavesLikeThatChild() {
+        Filter filter = Filter.or(Filter.equalTo("role", "administrator"));
+        assertTrue(filter.matches(Map.of("role", "administrator")));
+        assertFalse(filter.matches(Map.of("role", "user")));
+    }
+
+    @Test
     void rejectsZeroChildren() {
         assertThrows(IllegalArgumentException.class, () -> Filter.or());
     }

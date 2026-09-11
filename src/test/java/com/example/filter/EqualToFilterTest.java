@@ -7,7 +7,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class EqualsFilterTest {
+class EqualToFilterTest {
 
     @Test
     void matchesExactValue() {
@@ -49,6 +49,20 @@ class EqualsFilterTest {
     void trimsWhitespaceBeforeComparing() {
         Filter filter = Filter.equalTo("role", "administrator");
         assertTrue(filter.matches(Map.of("role", "  administrator  ")));
+    }
+
+    @Test
+    void propertyNamesAreCaseSensitive() {
+        // The spec states property names are case-sensitive while values are not, so a filter on
+        // "Role" must not pick up the resource's "role" entry.
+        Filter filter = Filter.equalTo("Role", "administrator");
+        assertFalse(filter.matches(Map.of("role", "administrator")));
+    }
+
+    @Test
+    void trimsTheFiltersOwnTargetValue() {
+        Filter filter = Filter.equalTo("role", "  administrator  ");
+        assertTrue(filter.matches(Map.of("role", "administrator")));
     }
 
     @Test

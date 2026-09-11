@@ -23,6 +23,14 @@ class AndFilterTest {
     }
 
     @Test
+    void singleChildBehavesLikeThatChild() {
+        // One child is legal (the floor is one, not two) and evaluates exactly like the child.
+        Filter filter = Filter.and(Filter.equalTo("role", "administrator"));
+        assertTrue(filter.matches(Map.of("role", "administrator")));
+        assertFalse(filter.matches(Map.of("role", "user")));
+    }
+
+    @Test
     void rejectsZeroChildren() {
         assertThrows(IllegalArgumentException.class, () -> Filter.and());
     }

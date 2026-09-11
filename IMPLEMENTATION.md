@@ -105,7 +105,8 @@ Holds a constant; `toString()` returns `"true"`/`"false"`, bare — like every o
 
 ## Validation/assumptions
 - **Empty AND/OR is illegal**: `Filter.and()`/`Filter.or()` called with zero arguments throws `IllegalArgumentException`, rather than adopting a vacuous-truth convention (empty AND = true, empty OR = false). DESIGN.md's task notes had flagged this as unresolved; settled in favor of the simpler, less-surprising option.
-- `NotFilter` and all property filters reject `null` arguments via `Objects.requireNonNull`.
+- **A null resource is rejected by every filter type**, not just the ones that dereference the map — `AndFilter`, `OrFilter` and `BooleanLiteralFilter` call `Objects.requireNonNull(resource, ...)` too, so `Filter.alwaysTrue().matches(null)` throws rather than returning `true`. Without this the contract would vary by filter type, which is a difference callers can't see coming.
+- All constructors reject `null` arguments via `Objects.requireNonNull`.
 - Property name lookup is a literal `Map.get()` — names are case-sensitive per spec, no normalization applied to keys (only to values, per Decision 6).
 
 ## Build

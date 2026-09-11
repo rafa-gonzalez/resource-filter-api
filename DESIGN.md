@@ -156,6 +156,8 @@ No Visitor interface or sealed-type/pattern-matching code for type-safe 3rd-part
 ### 7. Public API shape — static factories on `Filter` itself
 The entire public surface is a single type: `Filter`. It carries both the evaluation contract (`matches(Map<String,String> resource)`, called per-resource — filters are reusable and not bound to a single resource) and the static factory methods used for programmatic construction (item 3): `Filter.and(...)`, `Filter.or(...)`, `Filter.not(...)`, `Filter.alwaysTrue()`, `Filter.alwaysFalse()`, `Filter.equalTo(...)`, `Filter.lessThan(...)`, `Filter.greaterThan(...)`. There is no separate factory class — mirrors JDK static-factory conventions like `Comparator`/`List`.
 
+`matches` requires a non-null resource and throws `NullPointerException` otherwise — uniformly, for *every* filter type. Boolean literals and the logical operators don't strictly need the map, but letting them silently accept `null` while the comparison predicates threw would make the contract depend on which filter a caller happened to be holding.
+
 Concrete predicate implementations (the classes actually created by these factories) stay package-private — a caller only ever holds a `Filter` reference. This is also the concrete answer to extensibility item 5a: a new predicate type is one new package-private class plus one new static factory method, with no existing class touched.
 
 **Naming**: `equalTo`, not `equals` — a static `equals(String, String)` would compile without conflict alongside the inherited instance `Object.equals(Object)` (different signature), but reads confusingly next to it and is a known footgun some linters flag.

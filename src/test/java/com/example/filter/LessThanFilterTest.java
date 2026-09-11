@@ -30,6 +30,13 @@ class LessThanFilterTest {
     }
 
     @Test
+    void comparesLexicographicallyIgnoringCase() {
+        Filter filter = Filter.lessThan("name", "Banana");
+        assertTrue(filter.matches(Map.of("name", "APPLE")));
+        assertFalse(filter.matches(Map.of("name", "CHERRY")));
+    }
+
+    @Test
     void doesNotMatchMissingProperty() {
         Filter filter = Filter.lessThan("age", "30");
         assertFalse(filter.matches(Map.of("role", "administrator")));

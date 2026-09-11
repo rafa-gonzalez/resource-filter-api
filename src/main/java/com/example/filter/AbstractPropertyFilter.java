@@ -5,9 +5,9 @@ import java.util.Objects;
 
 abstract class AbstractPropertyFilter implements Filter {
 
-    final String property;
-    final String targetValue;
-    final Integer targetNumericValue;
+    private final String property;
+    private final String targetValue;
+    private final Integer targetNumericValue;
 
     AbstractPropertyFilter(String property, String value) {
         Objects.requireNonNull(property, "property must not be null");
@@ -65,7 +65,7 @@ abstract class AbstractPropertyFilter implements Filter {
         return this.property + " " + operator() + " '" + this.targetValue + "'";
     }
 
-    static Integer tryParseInt(String value) {
+    private static Integer tryParseInt(String value) {
         try {
             return Integer.valueOf(value);
         } catch (NumberFormatException e) {
