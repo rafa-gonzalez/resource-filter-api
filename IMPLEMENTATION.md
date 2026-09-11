@@ -121,8 +121,41 @@ Holds a constant; `toString()` returns `"true"`/`"false"`, bare — like every o
 - `ToStringTest` — exact-string assertions against the Decision 3 grammar: each predicate's bare rendering, value quoting (numeric-bare vs. string-quoted), the self-parenthesizing nested case (the `OR(AND(...), ...)` example from DESIGN.md), and `NOT`'s accepted redundant double-paren when negating a compound child (`NOT ((a AND b))`) — asserted explicitly so it reads as intended, not a future "bug fix" regression.
 - An explicit test asserting the `NOT(equals)`-matches-on-missing-property behavior called out in DESIGN.md Decision 2, so it reads as intended behavior rather than a future "bug fix" regression.
 
-## Deferred (per Decision 5)
-5b (type-safe 3rd-party structural access) gets no code — written discussion only, to be drafted once the core implementation is in place. Candidates to weigh there: classic Visitor pattern vs. Java 17 sealed interfaces + pattern-matching `switch` for compile-time exhaustiveness.
+## 5b — Type-safe structural access for third parties
 
-## Status
-Mid-rebuild: `Filter`, `AbstractPropertyFilter`, `EqualToFilter`, `LessThanFilter`, `GreaterThanFilter`, `AndFilter` implemented and passing their tests. `OrFilter.java` exists but isn't wired to `Filter.or()` yet, and its `matches()` currently implements AND semantics (copied from `AndFilter`, not yet adapted to `anyMatch`) — needs a look before wiring it up. `NotFilter`, `BooleanLiteralFilter`, and the `alwaysTrue`/`alwaysFalse`/`not` factory wiring are still outstanding. `is present` and regex-match are out of scope entirely (Decision 4) — no `PresentFilter`/`RegexFilter` to build.
+Right now a caller holding a `Filter` can only call `matches()` and `toString()` — the concrete
+classes (`AndFilter`, `EqualToFilter`, etc.) are package-private by design (Decision 7), so
+there's no way for outside code to inspect a filter's structure: is this an AND? a comparison?
+what property does it check?
+
+**Approach: Visitor pattern.** Add one method to `Filter`:
+
+```java
+<R> R accept(FilterVisitor<R> visitor);
+```
+
+And one new public interface, with one method per predicate type:
+
+```java
+public interface FilterVisitor<R> {
+    R visitAnd(List<Filter> children);
+    R visitOr(List<Filter> children);
+    R visitNot(Filter child);
+    R visitBooleanLiteral(boolean value);
+    R visitEqualTo(String property, String value);
+    R visitLessThan(String property, String value);
+    R visitGreaterThan(String property, String value);
+}
+```
+
+Each concrete class implements `accept` in one line, e.g. `AndFilter.accept(v)` →
+`v.visitAnd(children)`. A third party then implements `FilterVisitor<R>` to do their own logic
+per predicate type (compile to SQL, count nodes, serialize to JSON, etc.) — Java requires every
+method to be overridden, so a visitor can't compile without handling every filter type. This
+exposes each predicate's fields as plain method arguments without ever exposing the classes
+themselves — `EqualToFilter` stays package-private.
+
+**Trade-off:** adding a new predicate type later means adding a method to `FilterVisitor<R>`,
+which breaks any third-party visitor until they add the new override.
+
+**Status:** design only, not implemented in `src/`.

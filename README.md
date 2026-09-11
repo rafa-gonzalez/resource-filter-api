@@ -115,6 +115,7 @@ two lines — which sign of the comparison counts as a match, and which operator
 [DESIGN.md](DESIGN.md) records the requirements and every decision made where the spec was
 ambiguous — comparison semantics, missing-property handling, the string grammar, and scope.
 [IMPLEMENTATION.md](IMPLEMENTATION.md) covers class structure and the test plan.
+[AI_COLLABORATION.md](AI_COLLABORATION.md) describes how this exercise was built with Claude Code.
 
 ## Known tradeoffs
 
