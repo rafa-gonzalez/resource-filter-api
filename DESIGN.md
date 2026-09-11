@@ -81,10 +81,10 @@ These resolve the ambiguities the spec left open. Each includes the decision and
 ### 1. Comparison value semantics — numeric-aware, applies to equals too
 For **equals, less-than, and greater-than**, attempt to parse both the resource's property value and the filter's target value as **integers**. If both parse successfully, compare numerically. Otherwise, fall back to case-insensitive lexicographic string comparison. Decimal-looking values (e.g. `"5.0"`) are not treated as numeric — they fall back to string comparison like any other non-integer text, so `equalTo("price", "5.0")` does **not** match a resource value of `"5"`.
 
-Applying this to `equals` (not just ordering) keeps behavior consistent — otherwise `"035" < "40"` would be true numerically while `"035" == "35"` stayed false under a strictly literal equals, which would look like a bug. See also Decision 6 (numeric normalization).
+Applying this to `equals` (not just ordering) keeps behavior consistent — otherwise `"035" < "40"` would be true numerically while `"035" == "35"` stayed false under a strictly literal equals, which would look like a bug. See also Decision 4 (numeric normalization).
 
 ### 2. Missing-property semantics — 2-valued (true/false)
-No three-valued "undefined" state. If a property is missing (or, per Decision 6, present-but-empty), every comparison predicate (equals, less-than, greater-than) simply evaluates to `false`.
+No three-valued "undefined" state. If a property is missing (or, per Decision 4, present-but-empty), every comparison predicate (equals, less-than, greater-than) simply evaluates to `false`.
 
 **Known consequence, not a bug**: because this is 2-valued, `NOT(property equals X)` evaluates to `true` when the property is missing — a "not equal to X" filter matches resources that don't have the property at all, not just ones with a different value. This build's predicate set has no dedicated way to express "has the property AND it's not X" — `is present` was dropped from scope, and reintroducing it would be the way to recover that distinction. Worth a line in the write-up since it's a natural point of confusion.
 
@@ -132,18 +132,12 @@ renders as:
 Worked example (administrators older than 30):
 `(role == 'administrator' AND age > 30)`
 
-### 4. Scope target — 3 comparison types, not full breadth
-See "Scope Decision" above: equals, less-than, greater-than (`is present` and regex-match are out of scope), all 3 logical operators, both boolean literals.
-
-### 5. Extensibility 5b deliverable — written discussion only
-No Visitor interface or sealed-type/pattern-matching code for type-safe 3rd-party structural access. Addressed as a design write-up (candidate approaches: classic Visitor, or Java 17 sealed interfaces + pattern-matching `switch` for compile-time exhaustiveness). See "5b — Type-safe structural access for third parties" below.
-
-### 6. Value normalization edge cases
+### 4. Value normalization edge cases
 - **Numeric-looking values**: normalized per Decision 1 — `"35"` and `"035"` are considered the same value wherever numeric comparison applies (equals, less-than, greater-than).
 - **Whitespace**: leading/trailing whitespace is trimmed from both the resource's property value and the filter's target value before any comparison.
 - **Empty-string values and absent keys are equivalent everywhere**: a property whose value is empty after trimming is treated identically to a missing key for every comparison predicate.
 
-### 7. Public API shape — static factories on `Filter` itself
+### 5. Public API shape — static factories on `Filter` itself
 The entire public surface is a single type: `Filter`. It carries both the evaluation contract (`matches(Map<String,String> resource)`, called per-resource — filters are reusable and not bound to a single resource) and the static factory methods used for programmatic construction (item 3): `Filter.and(...)`, `Filter.or(...)`, `Filter.not(...)`, `Filter.alwaysTrue()`, `Filter.alwaysFalse()`, `Filter.equalTo(...)`, `Filter.lessThan(...)`, `Filter.greaterThan(...)`. There is no separate factory class — mirrors JDK static-factory conventions like `Comparator`/`List`.
 
 `matches` requires a non-null resource and throws `NullPointerException` otherwise — uniformly, for *every* filter type. Boolean literals and the logical operators don't strictly need the map, but letting them silently accept `null` while the comparison predicates threw would make the contract depend on which filter a caller happened to be holding.
@@ -154,7 +148,7 @@ Concrete predicate implementations (the classes actually created by these factor
 
 ## Package Layout
 
-Everything lives in a **single package** — package-private visibility doesn't cross sub-packages, which is what makes the package-private/single-factory design in Decision 7 work as extensibility item 5a's concrete answer.
+Everything lives in a **single package** — package-private visibility doesn't cross sub-packages, which is what makes the package-private/single-factory design in Decision 5 work as extensibility item 5a's concrete answer.
 
 ```
 com.example.filter/
@@ -192,7 +186,7 @@ public interface Filter {
 }
 ```
 
-String generation follows the self-parenthesizing rule in Decision 3. Naming rationale for `equalTo` vs. `equals` is in Decision 7.
+String generation follows the self-parenthesizing rule in Decision 3. Naming rationale for `equalTo` vs. `equals` is in Decision 5.
 
 ## Usage Shape
 
@@ -212,7 +206,7 @@ System.out.println(filter); // (role == 'administrator' AND age > 30)
 
 Grouped by which class(es) each mechanism lives in — property-based comparison filters share a base class, logical operators and boolean literals are their own thing.
 
-### AbstractPropertyFilter — shared state, missing/empty handling, numeric comparison (Decisions 1, 2 & 6)
+### AbstractPropertyFilter — shared state, missing/empty handling, numeric comparison (Decisions 1, 2 & 4)
 
 Holds `property`, `targetValue` (trimmed target value), and `targetNumericValue` (the target value pre-parsed as an `Integer`, or `null` if it isn't one) — computed once in the constructor. `matches()` is `final` on the base class, so every comparison predicate inherits the missing/empty-as-not-matching rule and the numeric-vs-lexicographic fallback for free instead of each repeating it:
 
@@ -255,7 +249,7 @@ Holds a constant; `toString()` returns `"true"`/`"false"`, bare — like every o
 - **Empty AND/OR is illegal**: `Filter.and()`/`Filter.or()` called with zero arguments throws `IllegalArgumentException`, rather than adopting a vacuous-truth convention (empty AND = true, empty OR = false). Settled in favor of the simpler, less-surprising option.
 - **A null resource is rejected by every filter type**, not just the ones that dereference the map — `AndFilter`, `OrFilter` and `BooleanLiteralFilter` call `Objects.requireNonNull(resource, ...)` too, so `Filter.alwaysTrue().matches(null)` throws rather than returning `true`. Without this the contract would vary by filter type, which is a difference callers can't see coming.
 - All constructors reject `null` arguments via `Objects.requireNonNull`.
-- Property name lookup is a literal `Map.get()` — names are case-sensitive per spec, no normalization applied to keys (only to values, per Decision 6).
+- Property name lookup is a literal `Map.get()` — names are case-sensitive per spec, no normalization applied to keys (only to values, per Decision 4).
 
 ## Build
 - Maven, Java 17 (`maven.compiler.release=17`).
@@ -268,13 +262,13 @@ Holds a constant; `toString()` returns `"true"`/`"false"`, bare — like every o
 - `CompositionTest` — nested arbitrary-depth filters, including the spec's worked example (administrators older than 30) verbatim.
 - `ToStringTest` — exact-string assertions against the Decision 3 grammar: each predicate's bare rendering, value quoting (numeric-bare vs. string-quoted), the self-parenthesizing nested case (the `OR(AND(...), ...)` example above), and `NOT`'s accepted redundant double-paren when negating a compound child (`NOT ((a AND b))`) — asserted explicitly so it reads as intended, not a future "bug fix" regression.
 - An explicit test asserting the `NOT(equals)`-matches-on-missing-property behavior called out in Decision 2, so it reads as intended behavior rather than a future "bug fix" regression.
-- `FilterValidationTest` — null-argument validation on every factory, and null-resource rejection across every filter type (comparisons, logical operators, and boolean literals alike), pinning Decision 7's uniform-null-contract rule.
+- `FilterValidationTest` — null-argument validation on every factory, and null-resource rejection across every filter type (comparisons, logical operators, and boolean literals alike), pinning Decision 5's uniform-null-contract rule.
 - Additional targeted cases were added per predicate as coverage gaps were found during review (property-name case-sensitivity, target-value trimming, negative integers, single-child AND/OR, the target-numeric/resource-non-numeric fallback branch) — see the test source under `src/test/java/com/example/filter` for the full, current list.
 
 ## 5b — Type-safe structural access for third parties
 
 Right now a caller holding a `Filter` can only call `matches()` and `toString()` — the concrete
-classes (`AndFilter`, `EqualToFilter`, etc.) are package-private by design (Decision 7), so
+classes (`AndFilter`, `EqualToFilter`, etc.) are package-private by design (Decision 5), so
 there's no way for outside code to inspect a filter's structure: is this an AND? a comparison?
 what property does it check?
 
@@ -307,8 +301,6 @@ themselves — `EqualToFilter` stays package-private.
 
 **Trade-off:** adding a new predicate type later means adding a method to `FilterVisitor<R>`,
 which breaks any third-party visitor until they add the new override.
-
-**Status:** design only, not implemented in `src/`.
 
 ## Status
 
