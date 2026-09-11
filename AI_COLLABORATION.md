@@ -24,10 +24,12 @@ example pinned the entire self-parenthesizing rule precisely — including the a
 ## 3. Recording decisions in living documents, not chat history
 
 Once ambiguities were resolved, the requirements and every design decision were consolidated into
-`DESIGN.md` and `IMPLEMENTATION.md`, explicitly superseding the original PDF as the working
-reference. This meant the reasoning behind each decision (not just the decision itself) persisted
-across the session and stayed available to re-check design choices against later — including
-correcting the docs when they drifted from what was actually built (see #8).
+`DESIGN.md`, explicitly superseding the original PDF as the working reference. This meant the
+reasoning behind each decision (not just the decision itself) persisted across the session and
+stayed available to re-check design choices against later — including correcting the docs when
+they drifted from what was actually built (see #8), and later merging a separate
+`IMPLEMENTATION.md` back into `DESIGN.md` once the project was small enough that splitting
+decision-rationale from architecture wasn't earning its keep.
 
 ## 4. Treating AI proposals as a draft, not the answer
 
@@ -77,7 +79,7 @@ an aspirational document.
 
 ## Outcome
 
-A fully documented design record (`DESIGN.md`, `IMPLEMENTATION.md`), a hand-written implementation
+A fully documented design record (`DESIGN.md`), a hand-written implementation
 reviewed at every step, and a test suite that grew alongside it rather than being written
 after the fact — 48 tests, all passing, including cases added specifically to pin down previously
 untested branches.
